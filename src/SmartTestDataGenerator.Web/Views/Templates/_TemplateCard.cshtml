@@ -1,0 +1,93 @@
+@model TemplateDto
+
+<div class="col-md-6" id="template-card-@Model.Id">
+    <div class="premium-card h-100 d-flex flex-column">
+        <div class="premium-card-header">
+            <div>
+                <span class="badge bg-secondary-subtle text-secondary mb-1">@Model.Category</span>
+                @if (Model.IsSystem)
+                {
+                    <span class="badge bg-primary-subtle text-primary mb-1">Sistem</span>
+                }
+            </div>
+            <div class="d-flex gap-1">
+                <!-- Pin Button -->
+                <button class="btn btn-sm btn-link p-0 text-decoration-none" onclick="toggleTemplatePin(@Model.Id, this)">
+                    <i class="bi @(Model.IsPinned ? "bi-pin-angle-fill text-warning" : "bi-pin-angle text-muted")"></i>
+                </button>
+                <!-- Favorite Button -->
+                <button class="btn btn-sm btn-link p-0 text-decoration-none" onclick="toggleTemplateFav(@Model.Id, this)">
+                    <i class="bi @(Model.IsFavorite ? "bi-heart-fill text-danger" : "bi-heart text-muted")"></i>
+                </button>
+            </div>
+        </div>
+        <div class="premium-card-body d-flex flex-column flex-grow-1 pt-1">
+            <h5 class="card-title font-weight-bold mb-2">@Model.Name</h5>
+            <p class="card-text small text-muted mb-3 flex-grow-1">@Model.Description</p>
+            
+            <div class="d-flex align-items-center justify-content-between border-top border-secondary border-opacity-10 pt-3 mt-auto">
+                <span class="small text-muted">
+                    <i class="bi bi-table"></i> @Model.Tables.Count Tablo
+                </span>
+                
+                <div class="d-flex gap-1">
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-sm btn-premium-secondary py-1" title="İncele & Veri Üret">
+                        <i class="bi bi-eye"></i> İncele
+                    </a>
+                    
+                    @if (!Model.IsSystem)
+                    {
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-info py-1" title="Düzenle">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <button class="btn btn-sm btn-outline-danger py-1" onclick="deleteTemplate(@Model.Id, '@Model.Name')" title="Sil">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-outline-info py-1" onclick="duplicateTemplate(@Model.Id)" title="Klonla (Kendi şablonunu yarat)">
+                            <i class="bi bi-copy"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    if (typeof deleteTemplate !== 'function') {
+        window.deleteTemplate = function(id, name) {
+            if (confirm(`'${name}' şablonunu ve bağlı tüm tablolarını silmek istediğinize emin misiniz?`)) {
+                fetch(`/Templates/Delete/${id}`, { method: 'POST' })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        document.getElementById(`template-card-${id}`).remove();
+                        showNotification("Başarılı", "Şablon başarıyla silindi.", "success");
+                    } else {
+                        showNotification("Hata", res.message, "error");
+                    }
+                });
+            }
+        };
+    }
+
+    if (typeof duplicateTemplate !== 'function') {
+        window.duplicateTemplate = function(id) {
+            fetch(`/Templates/Duplicate/${id}`, { method: 'POST' })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    showNotification("Başarılı", "Şablon başarıyla klonlandı. Yönlendiriliyorsunuz...", "success");
+                    setTimeout(() => {
+                        window.location.href = res.redirectUrl;
+                    }, 1000);
+                } else {
+                    showNotification("Hata", res.message, "error");
+                }
+            });
+        };
+    }
+</script>

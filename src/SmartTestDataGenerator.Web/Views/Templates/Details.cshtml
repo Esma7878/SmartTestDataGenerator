@@ -1,0 +1,329 @@
+@model TemplateDto
+
+<div class="row g-4">
+    <!-- Top Action Headers -->
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <p class="text-muted m-0">@Model.Description</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Index" class="btn btn-premium-secondary">
+                <i class="bi bi-arrow-left"></i> Şablonlara Dön
+            </a>
+            <a asp-action="ExportSchema" asp-route-id="@Model.Id" class="btn btn-premium-secondary" title="Şablon yapısını JSON olarak indir">
+                <i class="bi bi-download"></i> Şemayı İndir (JSON)
+            </a>
+            @if (!Model.IsSystem)
+            {
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-info">
+                    <i class="bi bi-pencil"></i> Şablonu Düzenle
+                </a>
+            }
+            else
+            {
+                <button class="btn btn-outline-info" onclick="duplicateTemplate(@Model.Id)">
+                    <i class="bi bi-copy"></i> Şablonu Klonla
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- Left side: Tables & Columns list -->
+    <div class="col-lg-8">
+        <h4 class="font-weight-bold mb-3"><i class="bi bi-table text-primary"></i> Şablon Tabloları ve Sütun Yapıları</h4>
+        <div class="accordion" id="tablesAccordion">
+            @foreach (var table in Model.Tables.OrderBy(t => t.Order))
+            {
+                <div class="accordion-item premium-card border-0 mb-3">
+                    <h2 class="accordion-header" id="heading-@table.Id">
+                        <button class="accordion-button bg-transparent text-color font-weight-bold border-0 shadow-none collapsed d-flex justify-content-between align-items-center pe-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@table.Id" aria-expanded="false" aria-controls="collapse-@table.Id">
+                            <span class="d-flex align-items-center gap-2">
+                                <i class="bi bi-hdd-network text-primary"></i>
+                                @table.Name
+                                <span class="badge bg-secondary-subtle text-secondary font-weight-normal ms-2" style="font-size: 0.75rem;">@table.RecordCount satır</span>
+                            </span>
+                        </button>
+                    </h2>
+                    <div id="collapse-@table.Id" class="accordion-collapse collapse" aria-labelledby="heading-@table.Id" data-bs-parent="#tablesAccordion">
+                        <div class="accordion-body border-top border-secondary border-opacity-10 p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 text-color">
+                                    <thead class="table-light text-muted small" style="background-color: var(--bg-color);">
+                                        <tr>
+                                            <th style="width: 5%;">#</th>
+                                            <th style="width: 25%;">Kolon Adı</th>
+                                            <th style="width: 25%;">Veri Tipi</th>
+                                            <th style="width: 15%;">Null Olasılığı</th>
+                                            <th style="width: 15%;">Tekrar Olasılığı</th>
+                                            <th style="width: 15%;">Ekstra Kural / FK</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="small">
+                                        @if (!table.Columns.Any())
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-3">Bu tabloda henüz kolon tanımlanmamış.</td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            int idx = 1;
+                                            @foreach (var col in table.Columns.OrderBy(c => c.Order))
+                                            {
+                                                <tr>
+                                                    <td>@(idx++)</td>
+                                                    <td class="font-weight-bold text-color">@col.Name</td>
+                                                    <td>
+                                                        @if (col.DataType == ColumnDataType.ForeignKey)
+                                                        {
+                                                            <span class="badge bg-danger-subtle text-danger"><i class="bi bi-link-45deg"></i> ForeignKey</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-primary-subtle text-primary">@col.DataType</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        @if (col.IsNullable)
+                                                        {
+                                                            <span class="text-warning"><i class="bi bi-check-circle"></i> %@col.NullPercentage Null</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted"><i class="bi bi-x-circle"></i> Null Olamaz</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        @if (col.DuplicatePercentage > 0)
+                                                        {
+                                                            <span class="text-info"><i class="bi bi-repeat"></i> %@col.DuplicatePercentage Tekrar</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted">Benzersiz</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        @if (col.DataType == ColumnDataType.ForeignKey)
+                                                        {
+                                                            <span class="small text-muted" title="Parent Table: @col.ParentTableName">
+                                                                <i class="bi bi-arrow-right-short"></i> @(col.ParentTableName).@(col.ParentColumnName ?? "Id")
+                                                            </span>
+                                                        }
+                                                        else if (!string.IsNullOrWhiteSpace(col.MinRange) || !string.IsNullOrWhiteSpace(col.MaxRange))
+                                                        {
+                                                            <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.75rem;">
+                                                                @col.MinRange - @col.MaxRange
+                                                            </span>
+                                                        }
+                                                        else if (!string.IsNullOrWhiteSpace(col.CustomRule))
+                                                        {
+                                                            <span class="badge bg-info-subtle text-info" style="font-size: 0.75rem;" title="@col.CustomRule">
+                                                                Kural Aktif
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted">-</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Right side: Data Generator Options Form -->
+    <div class="col-lg-4">
+        <div class="premium-card p-4 sticky-top" style="top: 90px; z-index: 10;">
+            <h4 class="font-weight-bold mb-3"><i class="bi bi-play-circle text-success"></i> Veri Üretim Modülü</h4>
+            <p class="small text-muted">Şablondaki tablolardan test verisi üretmek için parametreleri ayarlayın.</p>
+            
+            <form id="generator-form" method="post" action="/Generator/Generate">
+                <input type="hidden" name="TemplateId" value="@Model.Id">
+                
+                <!-- Record Scale / Count Override -->
+                <div class="mb-3">
+                    <label class="form-label small font-weight-bold">Kayıt Sayısı Katsayısı</label>
+                    <select class="form-select" name="RecordMultiplier" id="record-multiplier">
+                        <option value="1" selected>Varsayılan Kayıt Sayısı (1x)</option>
+                        <option value="2">2 Katı Veri Üret (2x)</option>
+                        <option value="5">5 Katı Veri Üret (5x)</option>
+                        <option value="10">10 Katı Veri Üret (10x)</option>
+                        <option value="50">50 Katı Veri Üret (50x)</option>
+                    </select>
+                    <div class="form-text small text-muted" id="multiplier-help">Toplamda yaklaşık @Model.Tables.Sum(t => t.RecordCount) kayıt üretilecek.</div>
+                </div>
+
+                <!-- Locale Options -->
+                <div class="mb-3">
+                    <label class="form-label small font-weight-bold">Yerelleştirme (Dil/Ülke)</label>
+                    <select class="form-select" name="Language">
+                        <option value="tr" selected>Türkçe (tr_TR)</option>
+                        <option value="en">English (en_US)</option>
+                        <option value="de">Deutsch (de_DE)</option>
+                        <option value="fr">Français (fr_FR)</option>
+                        <option value="es">Español (es_ES)</option>
+                    </select>
+                </div>
+
+                <!-- Seed Value -->
+                <div class="mb-3">
+                    <label class="form-label small font-weight-bold">Rastgelelik Tohumu (Seed)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-hash"></i></span>
+                        <input type="number" class="form-control border-start-0" name="Seed" id="seed-input" placeholder="Rastgele (Boş bırakın)">
+                        <button type="button" class="btn btn-premium-secondary btn-sm" onclick="randomizeSeed()" title="Rastgele Tohum Üret">
+                            <i class="bi bi-shuffle"></i>
+                        </button>
+                    </div>
+                    <div class="form-text small text-muted">Aynı seed değeri kullanıldığında her seferinde birebir aynı veriler üretilir (Tekrarlanabilirlik).</div>
+                </div>
+
+                <!-- Export Format -->
+                <div class="mb-3">
+                    <label class="form-label small font-weight-bold">Dışa Aktarma Formatı</label>
+                    <select class="form-select" name="ExportFormat" id="export-format" onchange="toggleSqlDialect()">
+                        <option value="JSON" selected>JSON Dosyası</option>
+                        <option value="CSV">CSV Dosyaları (Zip)</option>
+                        <option value="Excel">Excel Kitabı (Çoklu Sayfa)</option>
+                        <option value="XML">XML Dosyası</option>
+                        <option value="SQL">SQL Insert Script (.sql)</option>
+                        <option value="PDF">PDF Rapor Belgesi (.pdf)</option>
+                    </select>
+                </div>
+
+                <!-- SQL Syntax Options (Only visible when SQL selected) -->
+                <div class="mb-4 d-none" id="sql-dialect-container">
+                    <label class="form-label small font-weight-bold">SQL Dialect / Veritabanı Türü</label>
+                    <select class="form-select" name="SqlDialect">
+                        <option value="SQLServer" selected>SQL Server</option>
+                        <option value="MySQL">MySQL / MariaDB</option>
+                        <option value="PostgreSQL">PostgreSQL</option>
+                        <option value="SQLite">SQLite</option>
+                    </select>
+                </div>
+
+                <!-- Progress and Generate Button -->
+                <div class="d-grid mb-2">
+                    <button type="submit" class="btn btn-premium-primary py-2" id="btn-generate">
+                        <i class="bi bi-lightning-charge-fill"></i> Veri Üret ve Dışa Aktar
+                    </button>
+                </div>
+                
+                <!-- Loading indicator -->
+                <div class="d-none mt-3" id="generation-loader">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span class="small font-weight-bold text-primary">Veriler üretiliyor ve sıkıştırılıyor...</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" id="gen-progressbar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const tableBaseCount = @Model.Tables.Sum(t => t.RecordCount);
+            const multiplierSelect = document.getElementById("record-multiplier");
+            const helpText = document.getElementById("multiplier-help");
+
+            multiplierSelect.addEventListener("change", function () {
+                const multiplier = parseInt(multiplierSelect.value);
+                helpText.textContent = `Toplamda yaklaşık ${tableBaseCount * multiplier} kayıt üretilecek.`;
+            });
+
+            // Handle generator form submission with progress animation
+            const form = document.getElementById("generator-form");
+            const btnGenerate = document.getElementById("btn-generate");
+            const loader = document.getElementById("generation-loader");
+            const progressBar = document.getElementById("gen-progressbar");
+
+            form.addEventListener("submit", function (e) {
+                e.preventDefault();
+                
+                btnGenerate.disabled = true;
+                loader.classList.remove("d-none");
+                progressBar.style.width = "0%";
+                
+                // Simulate progress animation smoothly
+                let progress = 0;
+                const interval = setInterval(() => {
+                    if (progress < 90) {
+                        progress += Math.floor(Math.random() * 10) + 5;
+                        progressBar.style.width = Math.min(progress, 90) + "%";
+                    }
+                }, 200);
+
+                // Build form data
+                const formData = new FormData(form);
+                
+                fetch(form.action, {
+                    method: 'POST',
+                    body: new URLSearchParams(formData)
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error("Veri üretilirken sunucuda hata oluştu.");
+                    return response.json();
+                })
+                .then(res => {
+                    clearInterval(interval);
+                    progressBar.style.width = "100%";
+                    
+                    if (res.success) {
+                        showNotification("Başarılı!", "Veriler başarıyla üretildi. İndirme başlatılıyor...", "success");
+                        
+                        // Download file
+                        setTimeout(() => {
+                            window.location.href = res.downloadUrl;
+                            
+                            // Reset state
+                            btnGenerate.disabled = false;
+                            loader.classList.add("d-none");
+                            progressBar.style.width = "0%";
+                        }, 1000);
+                    } else {
+                        showNotification("Hata", res.message, "error");
+                        btnGenerate.disabled = false;
+                        loader.classList.add("d-none");
+                    }
+                })
+                .catch(err => {
+                    clearInterval(interval);
+                    showNotification("Hata", err.message, "error");
+                    btnGenerate.disabled = false;
+                    loader.classList.add("d-none");
+                });
+            });
+        });
+
+        function randomizeSeed() {
+            const seed = Math.floor(Math.random() * 100000);
+            document.getElementById("seed-input").value = seed;
+            showNotification("Tohum Belirlendi", `Seed değeri ${seed} olarak ayarlandı.`, "info");
+        }
+
+        function toggleSqlDialect() {
+            const exportFormat = document.getElementById("export-format").value;
+            const sqlDialectContainer = document.getElementById("sql-dialect-container");
+            
+            if (exportFormat === "SQL") {
+                sqlDialectContainer.classList.remove("d-none");
+            } else {
+                sqlDialectContainer.classList.add("d-none");
+            }
+        }
+    </script>
+}

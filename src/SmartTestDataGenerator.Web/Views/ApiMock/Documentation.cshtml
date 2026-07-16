@@ -1,0 +1,98 @@
+@model IEnumerable<TemplateDto>
+
+<div class="row g-4">
+    <!-- Intro Card -->
+    <div class="col-12">
+        <div class="premium-card p-4">
+            <h4 class="font-weight-bold mb-3"><i class="bi bi-braces-asterisk text-primary"></i> Dinamik REST Mock API Kılavuzu</h4>
+            <p class="small text-muted mb-2">Smart Data Gen, tanımlı tüm şablonlar için otomatik olarak sahte (mock) REST API endpoints oluşturur. Geliştirme aşamasındaki mobil veya web uygulamalarınızı beslemek için bu URL'leri doğrudan kullanabilirsiniz.</p>
+            <p class="small text-muted mb-0">API istekleri, veritabanına bağlanmadan, <strong> Bogus Motoru </strong> aracılığıyla anında üretilir ve saf JSON olarak döner.</p>
+        </div>
+    </div>
+
+    <!-- API List -->
+    <div class="col-lg-8">
+        <h5 class="font-weight-bold mb-3"><i class="bi bi-link-45deg"></i> Aktif Uç Noktalar (Endpoints)</h5>
+        
+        <div class="accordion" id="apiAccordion">
+            @foreach (var template in Model)
+            {
+                <div class="accordion-item premium-card border-0 mb-3">
+                    <h2 class="accordion-header" id="api-heading-@template.Id">
+                        <button class="accordion-button bg-transparent text-color font-weight-bold border-0 shadow-none collapsed d-flex justify-content-between align-items-center pe-4" type="button" data-bs-toggle="collapse" data-bs-target="#api-collapse-@template.Id" aria-expanded="false" aria-controls="api-collapse-@template.Id">
+                            <span class="d-flex align-items-center gap-2">
+                                <i class="bi bi-folder-fill text-warning"></i>
+                                @template.Name
+                                <span class="badge bg-secondary-subtle text-secondary font-weight-normal ms-2" style="font-size: 0.75rem;">@template.Tables.Count Endpoint</span>
+                            </span>
+                        </button>
+                    </h2>
+                    <div id="api-collapse-@template.Id" class="accordion-collapse collapse" aria-labelledby="api-heading-@template.Id" data-bs-parent="#apiAccordion">
+                        <div class="accordion-body border-top border-secondary border-opacity-10 p-4">
+                            @foreach (var table in template.Tables.OrderBy(t => t.Order))
+                            {
+                                <div class="border-bottom border-secondary border-opacity-10 pb-4 mb-4 last-mb-0">
+                                    <h6 class="font-weight-bold mb-3 text-success"><i class="bi bi-hdd-network"></i> Tablo: @table.Name</h6>
+                                    
+                                    <!-- GET Endpoint -->
+                                    <div class="mb-3">
+                                        <span class="badge bg-success text-white me-2">GET</span>
+                                        <code class="small select-all">/api/mock/@template.Id/@table.Name.ToLower()</code>
+                                        
+                                        <div class="mt-2 bg-body-tertiary p-3 rounded border border-secondary border-opacity-25 position-relative">
+                                            <span class="position-absolute top-0 end-0 m-2 badge bg-secondary" style="font-size: 0.65rem;">CURL</span>
+                                            <pre class="m-0 small text-color"><code>curl -X GET "http://localhost:5000/api/mock/@template.Id/@table.Name.ToLower()?count=5"</code></pre>
+                                        </div>
+                                        <div class="form-text small text-muted mt-1">Parametreler: <code>count</code> (Varsayılan: 10, Maks: 500)</div>
+                                    </div>
+
+                                    <!-- POST Endpoint -->
+                                    <div class="mb-3">
+                                        <span class="badge bg-primary text-white me-2">POST</span>
+                                        <code class="small select-all">/api/mock/@template.Id/@table.Name.ToLower()</code>
+                                        
+                                        <div class="mt-2 bg-body-tertiary p-3 rounded border border-secondary border-opacity-25 position-relative">
+                                            <span class="position-absolute top-0 end-0 m-2 badge bg-secondary" style="font-size: 0.65rem;">CURL</span>
+                                            <pre class="m-0 small text-color"><code>curl -X POST "http://localhost:5000/api/mock/@template.Id/@table.Name.ToLower()" \
+-H "Content-Type: application/json" \
+-d '{"name": "test"}'</code></pre>
+                                        </div>
+                                    </div>
+
+                                    <!-- Try out button -->
+                                    <div class="d-flex justify-content-start">
+                                        <a href="/api/mock/@template.Id/@table.Name.ToLower()?count=5" target="_blank" class="btn btn-sm btn-premium-secondary py-1">
+                                            <i class="bi bi-box-arrow-up-right"></i> Tarayıcıda Test Et (JSON)
+                                        </a>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Details Sidebar -->
+    <div class="col-lg-4">
+        <div class="premium-card p-4 sticky-top" style="top: 90px;">
+            <h5 class="font-weight-bold mb-3"><i class="bi bi-info-circle text-primary"></i> Mock API Kuralları</h5>
+            
+            <ul class="list-unstyled small text-muted mb-0">
+                <li class="mb-3">
+                    <strong><i class="bi bi-chevron-right"></i> Gerçekçi Veriler:</strong>
+                    İstek atıldığında veriler Bogus kütüphanesi ile üretildiğinden isim, e-posta, telefon ve adresler tamamen gerçekçidir.
+                </li>
+                <li class="mb-3">
+                    <strong><i class="bi bi-chevron-right"></i> İlişkisel Veriler:</strong>
+                    Üretilen listelerde ilişkili foreign key ID'leri tutarlıdır. Örneğin child tablodaki ID'ler parent tabloda var olan bir ID değerine karşılık gelir.
+                </li>
+                <li class="mb-0">
+                    <strong><i class="bi bi-chevron-right"></i> Performans:</strong>
+                    Mock API verileri veritabanı okuma/yazma maliyeti oluşturmadan doğrudan bellek üzerinde üretildiğinden ortalama yanıt süreleri &lt; 50 ms seviyesindedir.
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>

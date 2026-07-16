@@ -1,0 +1,217 @@
+@model IEnumerable<TemplateDto>
+
+@{
+    var systemTemplates = Model.Where(t => t.IsSystem).ToList();
+    var customTemplates = Model.Where(t => !t.IsSystem).ToList();
+}
+
+<!-- Alerts for Import operations -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row g-4">
+    <!-- Top Action Headers -->
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <p class="text-muted m-0">Geliştirme ve test süreçleriniz için hazır veri modellerini kullanın veya kendi şemanızı tasarlayın.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-premium-secondary" data-bs-toggle="modal" data-bs-target="#importSchemaModal">
+                <i class="bi bi-upload"></i> Şablon İçe Aktar
+            </button>
+            <a asp-action="Create" class="btn btn-premium-primary">
+                <i class="bi bi-plus-lg"></i> Yeni Şablon Oluştur
+            </a>
+        </div>
+    </div>
+
+    <!-- Templates Grid -->
+    <div class="col-lg-8">
+        <ul class="nav nav-pills mb-4 gap-2" id="templateTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="btn btn-premium-secondary active" id="system-tab" data-bs-toggle="pill" data-bs-target="#system-templates" type="button" role="tab" aria-selected="true">
+                    <i class="bi bi-cpu-fill"></i> Sistem Şablonları (@systemTemplates.Count)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="btn btn-premium-secondary" id="custom-tab" data-bs-toggle="pill" data-bs-target="#custom-templates" type="button" role="tab" aria-selected="false">
+                    <i class="bi bi-person-fill-gear"></i> Özel Şablonlar (@customTemplates.Count)
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="templateTabsContent">
+            <!-- System Templates Tab -->
+            <div class="tab-pane fade show active" id="system-templates" role="tabpanel" aria-labelledby="system-tab">
+                <div class="row g-3">
+                    @foreach (var template in systemTemplates)
+                    {
+                        @await Html.PartialAsync("_TemplateCard", template)
+                    }
+                </div>
+            </div>
+
+            <!-- Custom Templates Tab -->
+            <div class="tab-pane fade" id="custom-templates" role="tabpanel" aria-labelledby="custom-tab">
+                <div class="row g-3">
+                    @if (!customTemplates.Any())
+                    {
+                        <div class="col-12">
+                            <div class="premium-card p-5 text-center text-muted">
+                                <i class="bi bi-folder-plus display-1 mb-3 text-secondary"></i>
+                                <h4>Henüz Özel Şablonunuz Yok</h4>
+                                <p class="small">Kendi tablolarınızı ve sütun tiplerinizi belirleyerek özel bir şablon oluşturabilirsiniz.</p>
+                                <a asp-action="Create" class="btn btn-premium-primary btn-sm mt-2">Şimdi Oluştur</a>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var template in customTemplates)
+                        {
+                            @await Html.PartialAsync("_TemplateCard", template)
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats & Drag-Drop Import Sidebar -->
+    <div class="col-lg-4">
+        <div class="row g-3">
+            <div class="col-12">
+                <div class="premium-card p-4">
+                    <h5 class="font-weight-bold mb-3"><i class="bi bi-info-circle text-primary"></i> Hızlı Bilgi</h5>
+                    <p class="small text-muted mb-2"><strong>Sistem Şablonları:</strong> Bankacılık, E-Ticaret, Hastane gibi hazır veri şemalarını içerir. Bu şablonlar düzenlenemez ancak <strong>Klonlanabilir</strong>.</p>
+                    <p class="small text-muted mb-0"><strong>Özel Şablonlar:</strong> Kendi ihtiyaçlarınıza göre sıfırdan tablolar ve ilişkiler tanımlayabileceğiniz şablonlardır. Düzenleyebilir, silebilir ve paylaşabilirsiniz.</p>
+                </div>
+            </div>
+            
+            <div class="col-12">
+                <!-- Drag and Drop Import Schema Area -->
+                <div class="premium-card p-4">
+                    <h5 class="font-weight-bold mb-3"><i class="bi bi-filetype-json text-success"></i> Şablon Yükle</h5>
+                    <form asp-action="ImportSchema" method="post" enctype="multipart/form-data" id="import-schema-form">
+                        <div class="drop-zone" id="schema-drop-zone">
+                            <i class="bi bi-cloud-arrow-up-fill text-primary display-4 mb-2"></i>
+                            <p class="small font-weight-bold mb-1">Şablon Dosyasını Sürükleyin</p>
+                            <p class="text-muted" style="font-size: 0.75rem;">veya tıklayarak seçin (.json)</p>
+                            <input type="file" name="schemaFile" id="schemaFileInput" accept=".json" class="d-none">
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Schema Modal -->
+<div class="modal fade" id="importSchemaModal" tabindex="-1" aria-labelledby="importSchemaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title font-weight-bold" id="importSchemaModalLabel">Şablon İçe Aktar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <form asp-action="ImportSchema" method="post" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <p class="small text-muted">Daha önce dışa aktardığınız `.json` uzantılı Smart Data Gen şablon dosyasını seçerek sisteme yükleyin.</p>
+                    <div class="mb-3">
+                        <label for="schemaFile" class="form-label small">Şablon Dosyası (.json)</label>
+                        <input class="form-control" type="file" id="schemaFile" name="schemaFile" accept=".json" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-premium-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-premium-primary">Yükle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Drag and drop logic
+            const dropZone = document.getElementById("schema-drop-zone");
+            const fileInput = document.getElementById("schemaFileInput");
+            const form = document.getElementById("import-schema-form");
+
+            dropZone.addEventListener("click", () => fileInput.click());
+
+            dropZone.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                dropZone.classList.add("active");
+            });
+
+            ["dragleave", "dragend"].forEach(type => {
+                dropZone.addEventListener(type, () => {
+                    dropZone.classList.remove("active");
+                });
+            });
+
+            dropZone.addEventListener("drop", (e) => {
+                e.preventDefault();
+                dropZone.classList.remove("active");
+                
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    form.submit();
+                }
+            });
+
+            fileInput.addEventListener("change", () => {
+                if (fileInput.files.length) {
+                    form.submit();
+                }
+            });
+            
+            // Toggle Pin / Favorite handling via Fetch
+            window.toggleTemplatePin = function(id, btn) {
+                fetch(`/Templates/TogglePin/${id}`, { method: 'POST' })
+                .then(r => {
+                    if (r.ok) {
+                        const icon = btn.querySelector('i');
+                        if (icon.classList.contains('bi-pin-angle-fill')) {
+                            icon.className = 'bi bi-pin-angle text-muted';
+                            showNotification("Bilgi", "Şablon panodan kaldırıldı.", "info");
+                        } else {
+                            icon.className = 'bi bi-pin-angle-fill text-warning';
+                            showNotification("Bilgi", "Şablon panoya iğnelendi.", "success");
+                        }
+                    }
+                });
+            };
+
+            window.toggleTemplateFav = function(id, btn) {
+                fetch(`/Templates/ToggleFavorite/${id}`, { method: 'POST' })
+                .then(r => {
+                    if (r.ok) {
+                        const icon = btn.querySelector('i');
+                        if (icon.classList.contains('bi-heart-fill')) {
+                            icon.className = 'bi bi-heart text-muted';
+                            showNotification("Bilgi", "Şablon favorilerden çıkarıldı.", "info");
+                        } else {
+                            icon.className = 'bi bi-heart-fill text-danger';
+                            showNotification("Bilgi", "Şablon favorilere eklendi.", "success");
+                        }
+                    }
+                });
+            };
+        });
+    </script>
+}

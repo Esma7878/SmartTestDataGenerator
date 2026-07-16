@@ -1,0 +1,105 @@
+@{
+    string currentTheme = ViewBag.Theme;
+    string currentLanguage = ViewBag.Language;
+    string currentDefaultExport = ViewBag.DefaultExport;
+    string currentDefaultSeed = ViewBag.DefaultSeed;
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="premium-card p-4">
+            <h5 class="font-weight-bold mb-3"><i class="bi bi-sliders2-vertical text-primary"></i> Genel Sistem Tercihleri</h5>
+            
+            <form asp-action="Save" method="post" id="settings-form">
+                <!-- Theme Option -->
+                <div class="mb-3">
+                    <label for="theme-select" class="form-label small font-weight-bold">Arayüz Teması</label>
+                    <select class="form-select" id="theme-select" name="theme">
+                        <option value="dark" selected="@(currentTheme == "dark")">Karanlık Tema (Dark Mode)</option>
+                        <option value="light" selected="@(currentTheme == "light")">Aydınlık Tema (Light Mode)</option>
+                    </select>
+                    <div class="form-text small text-muted">Arayüzün renk paletini belirleyin.</div>
+                </div>
+
+                <!-- Language Option -->
+                <div class="mb-3">
+                    <label for="lang-select" class="form-label small font-weight-bold">Varsayılan Üretim Dili</label>
+                    <select class="form-select" id="lang-select" name="language">
+                        <option value="tr" selected="@(currentLanguage == "tr")">Türkçe (tr_TR)</option>
+                        <option value="en" selected="@(currentLanguage == "en")">English (en_US)</option>
+                        <option value="de" selected="@(currentLanguage == "de")">Deutsch (de_DE)</option>
+                        <option value="fr" selected="@(currentLanguage == "fr")">Français (fr_FR)</option>
+                        <option value="es" selected="@(currentLanguage == "es")">Español (es_ES)</option>
+                    </select>
+                    <div class="form-text small text-muted">Üretilecek sahte isim, adres ve metinlerin varsayılan dil yerelleştirmesi.</div>
+                </div>
+
+                <!-- Default Export -->
+                <div class="mb-3">
+                    <label for="export-select" class="form-label small font-weight-bold">Varsayılan Dosya Formatı</label>
+                    <select class="form-select" id="export-select" name="defaultExport">
+                        <option value="JSON" selected="@(currentDefaultExport == "JSON")">JSON</option>
+                        <option value="CSV" selected="@(currentDefaultExport == "CSV")">CSV (Zipped)</option>
+                        <option value="Excel" selected="@(currentDefaultExport == "Excel")">Excel (.xlsx)</option>
+                        <option value="XML" selected="@(currentDefaultExport == "XML")">XML</option>
+                        <option value="SQL" selected="@(currentDefaultExport == "SQL")">SQL Insert Script</option>
+                        <option value="PDF" selected="@(currentDefaultExport == "PDF")">PDF Raporu</option>
+                    </select>
+                </div>
+
+                <!-- Default Seed -->
+                <div class="mb-4">
+                    <label for="seed-input" class="form-label small font-weight-bold">Varsayılan Rastgelelik Tohumu (Seed)</label>
+                    <input type="number" class="form-control" id="seed-input" name="defaultSeed" value="@currentDefaultSeed" required>
+                    <div class="form-text small text-muted">Üretim formlarındaki varsayılan tekrarlanabilirlik tohum değeri.</div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-premium-primary py-2">
+                        <i class="bi bi-check-lg"></i> Ayarları Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Info Sidebar -->
+    <div class="col-lg-6">
+        <div class="premium-card p-4 h-100">
+            <h5 class="font-weight-bold mb-3"><i class="bi bi-shield-lock text-success"></i> Sistem & Güvenlik</h5>
+            <p class="small text-muted mb-3">Tüm tercihleriniz güvenli bir şekilde yerel veritabanında saklanır. Tarayıcı önbelleğinizi temizleseniz dahi ayarlarınız kaybolmaz.</p>
+            
+            <div class="alert bg-body-tertiary border-secondary border-opacity-25 p-3 rounded small text-color">
+                <i class="bi bi-info-circle-fill text-info me-1"></i>
+                <strong>Tema Eşitleme:</strong> Ayarları kaydettiğinizde, seçilen arayüz teması tarayıcınızın <code>localStorage</code> belleğine de yazılır ve sonraki sayfa yüklemelerinde ekran göz kırpması engellenir.
+            </div>
+
+            <div class="d-flex flex-column gap-2 mt-4">
+                <span class="small font-weight-bold"><i class="bi bi-hdd-fill"></i> Veritabanı Tipi:</span>
+                <span class="small text-muted ms-3">SQLite 3 (smart_test_data.db)</span>
+
+                <span class="small font-weight-bold mt-2"><i class="bi bi-clock-history"></i> Son Eşitleme:</span>
+                <span class="small text-muted ms-3">@DateTime.Now.ToString("dd.MM.yyyy HH:mm")</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Sync layout theme with the setting when form is saved
+        document.getElementById("settings-form").addEventListener("submit", function() {
+            const theme = document.getElementById("theme-select").value;
+            localStorage.setItem('theme', theme);
+        });
+    </script>
+}

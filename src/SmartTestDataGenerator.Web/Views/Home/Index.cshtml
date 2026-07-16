@@ -1,0 +1,275 @@
+@model DashboardViewModel
+
+<div class="row g-4">
+    <!-- Stat Cards -->
+    <div class="col-md-4">
+        <div class="premium-card p-4 d-flex align-items-center justify-content-between">
+            <div>
+                <span class="text-muted small font-weight-bold d-block mb-1">Toplam Şablon</span>
+                <h2 class="font-weight-bold m-0 text-color">@Model.TotalTemplates</h2>
+            </div>
+            <div class="card-stat-icon bg-gradient-primary">
+                <i class="bi bi-layout-text-sidebar-reverse"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="premium-card p-4 d-flex align-items-center justify-content-between">
+            <div>
+                <span class="text-muted small font-weight-bold d-block mb-1">Üretilen Toplam Kayıt</span>
+                <h2 class="font-weight-bold m-0 text-color">@Model.TotalRecords.ToString("#,##0")</h2>
+            </div>
+            <div class="card-stat-icon bg-gradient-success">
+                <i class="bi bi-database-fill-check"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="premium-card p-4 d-flex align-items-center justify-content-between">
+            <div>
+                <span class="text-muted small font-weight-bold d-block mb-1">Dışa Aktarma Sayısı</span>
+                <h2 class="font-weight-bold m-0 text-color">@Model.TotalExports</h2>
+            </div>
+            <div class="card-stat-icon bg-warning bg-opacity-75">
+                <i class="bi bi-download"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="col-lg-8">
+        <div class="premium-card p-4">
+            <h5 class="font-weight-bold mb-3"><i class="bi bi-activity text-primary"></i> Son 7 Günlük Kayıt Üretim Dağılımı</h5>
+            <div style="height: 300px;">
+                <canvas id="timelineChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="premium-card p-4 h-100">
+            <h5 class="font-weight-bold mb-3"><i class="bi bi-pie-chart text-success"></i> Dosya Formatı Dağılımı</h5>
+            <div style="height: 300px;" class="d-flex align-items-center justify-content-center">
+                @if (!Model.FormatChartValues.Any())
+                {
+                    <span class="text-muted small">Veri üretim geçmişi bulunmamaktadır.</span>
+                }
+                else
+                {
+                    <canvas id="formatChart"></canvas>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Pinned templates and recent activity -->
+    <div class="col-lg-6">
+        <div class="premium-card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="font-weight-bold m-0"><i class="bi bi-pin-angle-fill text-warning"></i> İğnelenmiş Şablonlar</h5>
+                <a asp-controller="Templates" asp-action="Index" class="small text-decoration-none">Tümünü Gör</a>
+            </div>
+            
+            <div class="row g-2">
+                @if (!Model.PinnedTemplates.Any())
+                {
+                    <div class="col-12 text-center py-4 text-muted small">
+                        <i class="bi bi-info-circle mb-2 d-block"></i> Hızlı erişim için şablon kartlarındaki iğne ikonuna tıklayın.
+                    </div>
+                }
+                else
+                {
+                    @foreach (var pin in Model.PinnedTemplates)
+                    {
+                        <div class="col-md-6">
+                            <div class="card bg-body-tertiary border-secondary border-opacity-10 p-3 h-100">
+                                <h6 class="font-weight-bold text-truncate mb-1">@pin.Name</h6>
+                                <p class="small text-muted mb-2 text-truncate">@pin.Description</p>
+                                <div class="d-flex justify-content-between align-items-center mt-auto">
+                                    <span class="small text-muted"><i class="bi bi-table"></i> @pin.Tables.Count Tablo</span>
+                                    <a asp-controller="Templates" asp-action="Details" asp-route-id="@pin.Id" class="btn btn-sm btn-premium-primary px-2 py-0" style="font-size: 0.75rem;">
+                                        <i class="bi bi-play-fill"></i> Git
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="premium-card p-4 h-100">
+            <h5 class="font-weight-bold mb-3"><i class="bi bi-clock-history text-info"></i> Son Aktiviteler</h5>
+            <div class="list-group list-group-flush" style="max-height: 250px; overflow-y: auto;">
+                @if (!Model.RecentActivities.Any())
+                {
+                    <div class="text-center py-4 text-muted small">Aktivite kaydı bulunmamaktadır.</div>
+                }
+                else
+                {
+                    @foreach (var activity in Model.RecentActivities)
+                    {
+                        <div class="list-group-item bg-transparent border-secondary border-opacity-10 px-0 py-2 d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-2">
+                                @if (activity.ActivityType == "Generate")
+                                {
+                                    <span class="badge bg-success-subtle text-success p-1"><i class="bi bi-lightning-fill"></i></span>
+                                }
+                                else if (activity.ActivityType == "SystemInit")
+                                {
+                                    <span class="badge bg-primary-subtle text-primary p-1"><i class="bi bi-cpu-fill"></i></span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info-subtle text-info p-1"><i class="bi bi-info-circle-fill"></i></span>
+                                }
+                                <span class="small text-color">@activity.Details</span>
+                            </div>
+                            <span class="small text-muted" style="font-size: 0.7rem;">@activity.Timestamp.ToLocalTime().ToString("HH:mm")</span>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Generations Table -->
+    <div class="col-12">
+        <div class="premium-card p-4">
+            <h5 class="font-weight-bold mb-3"><i class="bi bi-download text-primary"></i> Son Üretilen Dosyalar</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-color">
+                    <thead class="table-light text-muted small" style="background-color: var(--bg-color);">
+                        <tr>
+                            <th>Şablon Adı</th>
+                            <th>Üretilen Satır</th>
+                            <th>Dosya Tipi</th>
+                            <th>Tohum (Seed)</th>
+                            <th>Üretim Hızı</th>
+                            <th>Tarih</th>
+                            <th style="width: 5%;">Dosya</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        @if (!Model.RecentHistory.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">Henüz veri üretilmedi. Şablonlar sayfasından ilk test verinizi oluşturun.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var hist in Model.RecentHistory)
+                            {
+                                <tr>
+                                    <td class="font-weight-bold">@hist.TemplateName</td>
+                                    <td>@hist.TotalRecords.ToString("#,##0") satır</td>
+                                    <td><span class="badge bg-secondary-subtle text-secondary">@hist.ExportFormat</span></td>
+                                    <td><code>@hist.Seed</code></td>
+                                    <td><span class="text-success"><i class="bi bi-speedometer2"></i> @hist.GenerationSpeedMs ms</span></td>
+                                    <td>@hist.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                                    <td>
+                                        <a href="@hist.FilePath" class="btn btn-sm btn-outline-primary py-1" download title="İndir">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Timeline Chart logic (Line Chart)
+            const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+            const timelineLabels = @Html.Raw(JsonSerializer.Serialize(Model.TimelineChartLabels));
+            const timelineValues = @Html.Raw(JsonSerializer.Serialize(Model.TimelineChartValues));
+
+            const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+            const gridColor = isDark ? '#27272a' : '#e2e8f0';
+            const textColor = isDark ? '#a1a1aa' : '#64748b';
+
+            new Chart(timelineCtx, {
+                type: 'line',
+                data: {
+                    labels: timelineLabels,
+                    datasets: [{
+                        label: 'Üretilen Satır Sayısı',
+                        data: timelineValues,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#8b5cf6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { color: textColor }
+                        },
+                        y: {
+                            grid: { color: gridColor },
+                            ticks: { color: textColor }
+                        }
+                    }
+                }
+            });
+
+            // Format Distribution Chart logic (Doughnut Chart)
+            const formatCanvas = document.getElementById('formatChart');
+            if (formatCanvas) {
+                const formatCtx = formatCanvas.getContext('2d');
+                const formatLabels = @Html.Raw(JsonSerializer.Serialize(Model.FormatChartLabels));
+                const formatValues = @Html.Raw(JsonSerializer.Serialize(Model.FormatChartValues));
+
+                new Chart(formatCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: formatLabels,
+                        datasets: [{
+                            data: formatValues,
+                            backgroundColor: [
+                                '#4f46e5', // JSON
+                                '#10b981', // CSV
+                                '#f59e0b', // Excel
+                                '#ef4444', // XML
+                                '#8b5cf6', // SQL
+                                '#06b6d4'  // PDF
+                            ],
+                            borderWidth: isDark ? 2 : 1,
+                            borderColor: isDark ? '#18181b' : '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: textColor, boxWidth: 12 }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+}

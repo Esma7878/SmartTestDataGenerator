@@ -1,0 +1,584 @@
+@model TemplateDto
+
+@{
+    var dataTypesJson = JsonSerializer.Serialize(ViewBag.DataTypes);
+    var templateDataJson = JsonSerializer.Serialize(Model);
+}
+
+<div class="row g-4">
+    <!-- Header -->
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <p class="text-muted m-0">Özel şablonunuzu güncelleyin. Tablo adlarını, sütun kurallarını veya ilişkilerini düzenleyebilirsiniz.</p>
+        </div>
+        <div>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-premium-secondary">
+                <i class="bi bi-x-lg"></i> İptal
+            </a>
+            <button type="button" class="btn btn-premium-primary" id="btn-save-template">
+                <i class="bi bi-floppy"></i> Değişiklikleri Kaydet
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Form and Editor -->
+    <div class="col-lg-12">
+        <form id="template-meta-form" class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="premium-card p-4 h-100">
+                    <h5 class="font-weight-bold mb-3"><i class="bi bi-info-circle text-primary"></i> Genel Bilgiler</h5>
+                    
+                    <div class="mb-3">
+                        <label class="form-label small font-weight-bold">Şablon Adı</label>
+                        <input type="text" class="form-control" id="template-name" value="@Model.Name" placeholder="Örn: Otomotiv Satış Modeli" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small font-weight-bold">Açıklama</label>
+                        <textarea class="form-control" id="template-desc" rows="3" placeholder="Şablonun amacını açıklayan kısa bir metin...">@Model.Description</textarea>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label small font-weight-bold">Kategori</label>
+                        <input type="text" class="form-control" id="template-category" value="@Model.Category" placeholder="Örn: Otomotiv, E-Ticaret, Test" required>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top border-secondary border-opacity-10">
+                        <h6 class="font-weight-bold mb-2"><i class="bi bi-file-earmark-spreadsheet text-success"></i> CSV'den Tablo Ekle</h6>
+                        <p class="text-muted" style="font-size: 0.75rem;">CSV dosyasının başlık satırını okuyarak dinamik tablo yapısı oluşturun.</p>
+                        <div class="drop-zone py-3 px-2" id="csv-drop-zone">
+                            <i class="bi bi-filetype-csv text-success display-6 mb-1 d-block"></i>
+                            <span class="small font-weight-bold d-block">CSV Dosyasını Sürükleyin</span>
+                            <span class="text-muted" style="font-size: 0.7rem;">veya tıklayarak seçin</span>
+                            <input type="file" id="csvFileInput" accept=".csv" class="d-none">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Schema Builder Area -->
+            <div class="col-md-8">
+                <div class="premium-card p-4 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="font-weight-bold m-0"><i class="bi bi-diagram-3 text-success"></i> Tablolar ve Sütun Yapıları</h5>
+                        <button type="button" class="btn btn-premium-secondary btn-sm" onclick="addNewTable()">
+                            <i class="bi bi-plus-lg"></i> Tablo Ekle
+                        </button>
+                    </div>
+
+                    <!-- List of custom tables -->
+                    <div id="tables-container">
+                        <!-- Dynamic tables loaded here -->
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const dataTypes = @Html.Raw(dataTypesJson);
+        const templateData = @Html.Raw(templateDataJson);
+        
+        let tableCounter = 0;
+        let columnCounter = 0;
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // CSV Drag and drop logic
+            const csvDropZone = document.getElementById("csv-drop-zone");
+            const csvFileInput = document.getElementById("csvFileInput");
+
+            csvDropZone.addEventListener("click", () => csvFileInput.click());
+
+            csvDropZone.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                csvDropZone.classList.add("active");
+            });
+
+            ["dragleave", "dragend"].forEach(type => {
+                csvDropZone.addEventListener(type, () => {
+                    csvDropZone.classList.remove("active");
+                });
+            });
+
+            csvDropZone.addEventListener("drop", (e) => {
+                e.preventDefault();
+                csvDropZone.classList.remove("active");
+                if (e.dataTransfer.files.length) {
+                    handleCsvFile(e.dataTransfer.files[0]);
+                }
+            });
+
+            csvFileInput.addEventListener("change", () => {
+                if (csvFileInput.files.length) {
+                    handleCsvFile(csvFileInput.files[0]);
+                }
+            });
+
+            function handleCsvFile(file) {
+                if (!file.name.endsWith(".csv")) {
+                    showNotification("Geçersiz Dosya", "Lütfen sadece .csv uzantılı dosyaları yükleyin.", "error");
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const content = e.target.result;
+                    const lines = content.split(/\r?\n/);
+                    if (lines.length === 0 || !lines[0]) {
+                        showNotification("Hata", "CSV dosyası boş veya başlık satırı okunamadı.", "error");
+                        return;
+                    }
+
+                    let delimiter = ",";
+                    if (lines[0].includes(";")) delimiter = ";";
+                    
+                    const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^["']|["']$/g, "")).filter(h => h);
+                    if (headers.length === 0) {
+                        showNotification("Hata", "CSV dosyasında hiç sütun başlığı bulunamadı.", "error");
+                        return;
+                    }
+
+                    const tableName = file.name.substring(0, file.name.lastIndexOf(".")).replace(/[^a-zA-Z0-9_]/g, "");
+                    const tId = addNewTable({ name: tableName, recordCount: 100 });
+                    
+                    headers.forEach(h => {
+                        if (h.toLowerCase() === "id") return; // Skip ID
+                        
+                        const inferredType = inferDataType(h);
+                        addColumnToTable(tId, { name: h, dataType: inferredType });
+                    });
+
+                    showNotification("Tablo Eklendi", `'${tableName}' tablosu CSV yapısından başarıyla oluşturuldu.`, "success");
+                };
+                reader.readAsText(file);
+            }
+
+            function inferDataType(headerName) {
+                const name = headerName.toLowerCase().replace(/[^a-z]/g, "");
+                
+                if (name.includes("email") || name.includes("mail")) return 7; // Email
+                if (name.includes("phone") || name.includes("tel") || name.includes("gsm")) return 6; // Phone
+                if (name.includes("surname") || name.includes("soyadi")) return 1; // Surname
+                if (name.includes("firstname") || name.includes("adi")) return 0; // Name
+                if (name.includes("fullname") || name.includes("adsoyad")) return 2; // FullName
+                if (name.includes("gender") || name.includes("cinsiyet")) return 3; // Gender
+                if (name.includes("birth") || name.includes("dogum") || name.includes("tarih") || name.includes("date")) return 4; // BirthDate
+                if (name.includes("age") || name.includes("yas")) return 5; // Age
+                if (name.includes("price") || name.includes("fiyat") || name.includes("amount") || name.includes("tutar")) return 19; // Price
+                if (name.includes("salary") || name.includes("maas")) return 17; // Salary
+                if (name.includes("company") || name.includes("sirket")) return 14; // Company
+                if (name.includes("address") || name.includes("adres")) return 10; // Address
+                if (name.includes("city") || name.includes("sehir")) return 11; // City
+                if (name.includes("country") || name.includes("ulke")) return 12; // Country
+                if (name.includes("zip") || name.includes("posta")) return 13; // ZipCode
+                if (name.includes("card") || name.includes("kart")) return 25; // CreditCard
+                if (name.includes("iban")) return 26; // IBAN
+                if (name.includes("url") || name.includes("web") || name.includes("site")) return 28; // URL
+                if (name.includes("ip")) return 41; // IPAddress
+                
+                return 34; // RandomText (default)
+            }
+
+            // Load existing template tables and columns
+            if (templateData && templateData.Tables && templateData.Tables.length > 0) {
+                templateData.Tables.forEach(t => {
+                    const tId = addNewTable({ name: t.Name, recordCount: t.RecordCount, dbId: t.Id });
+                    
+                    if (t.Columns && t.Columns.length > 0) {
+                        t.Columns.forEach(c => {
+                            addColumnToTable(tId, {
+                                name: c.Name,
+                                dataType: c.DataType,
+                                isNullable: c.IsNullable,
+                                nullPercentage: c.NullPercentage,
+                                duplicatePercentage: c.DuplicatePercentage,
+                                minRange: c.MinRange,
+                                maxRange: c.MaxRange,
+                                customRule: c.CustomRule,
+                                parentTableId: c.ParentTableId,
+                                dbId: c.Id
+                            });
+                        });
+                    }
+                });
+            } else {
+                addNewTable();
+            }
+
+            // Save Template handler
+            document.getElementById("btn-save-template").addEventListener("click", function () {
+                const name = document.getElementById("template-name").value.trim();
+                const description = document.getElementById("template-desc").value.trim();
+                const category = document.getElementById("template-category").value.trim();
+
+                if (!name || !category) {
+                    showNotification("Eksik Bilgi", "Lütfen şablon adı ve kategorisini doldurun.", "error");
+                    return;
+                }
+
+                if (document.querySelectorAll(".table-card").length === 0) {
+                    showNotification("Eksik Bilgi", "Şablonda en az 1 tablo bulunmalıdır.", "error");
+                    return;
+                }
+
+                const payload = serializeTemplateData(name, description, category);
+                if (!payload) return; // Validation failed
+
+                // Send to backend
+                fetch('/Templates/Edit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification("Başarılı", "Şablon başarıyla güncellendi.", "success");
+                        setTimeout(() => {
+                            window.location.href = data.redirectUrl;
+                        }, 1000);
+                    } else {
+                        showNotification("Hata", data.message, "error");
+                    }
+                })
+                .catch(err => {
+                    showNotification("Hata", "Ağ bağlantı hatası oluştu.", "error");
+                });
+            });
+        });
+
+        // Add a new table container to UI
+        function addNewTable(tableObj = null) {
+            tableCounter++;
+            const tId = tableCounter;
+
+            const name = tableObj ? tableObj.name : `Table_${tId}`;
+            const count = tableObj ? tableObj.recordCount : 100;
+            const dbId = tableObj ? tableObj.dbId : 0;
+
+            const tableHtml = `
+                <div class="card bg-body-tertiary border-secondary border-opacity-25 mb-4 table-card" id="table-card-${tId}" data-id="${tId}" data-db-id="${dbId}">
+                    <div class="card-header border-0 bg-transparent py-3 d-flex justify-content-between align-items-center">
+                        <div class="row g-2 align-items-center flex-grow-1 me-3">
+                            <div class="col-md-6">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-transparent border-0 ps-0 text-muted"><i class="bi bi-hdd-network"></i></span>
+                                    <input type="text" class="form-control form-control-sm table-name font-weight-bold" value="${name}" placeholder="Tablo Adı (örn: Orders)" onchange="updateFkDropdowns()" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-transparent border-0 small text-muted">Kayıt:</span>
+                                    <input type="number" class="form-control form-control-sm table-count" value="${count}" min="1" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addColumnToTable(${tId})">
+                                <i class="bi bi-plus-circle"></i> Kolon Ekle
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeTable(${tId})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0 border-top border-secondary border-opacity-10">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" id="table-columns-tbl-${tId}">
+                                <thead class="table-light text-muted small" style="font-size: 0.75rem;">
+                                    <tr>
+                                        <th style="width: 25%;">Kolon Adı</th>
+                                        <th style="width: 25%;">Veri Tipi</th>
+                                        <th style="width: 15%;">Null?</th>
+                                        <th style="width: 15%;">Tekrar?</th>
+                                        <th style="width: 15%;">Aralıklar / İlişki</th>
+                                        <th style="width: 5%;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="columns-body">
+                                    <!-- Columns injected dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById("tables-container").insertAdjacentHTML("beforeend", tableHtml);
+            
+            // Return temp ID for column insertion reference
+            return tId;
+        }
+
+        // Add a new column row to table
+        function addColumnToTable(tId, colObj = null) {
+            columnCounter++;
+            const cId = columnCounter;
+            
+            const tbody = document.querySelector(`#table-columns-tbl-${tId} .columns-body`);
+
+            const colName = colObj ? colObj.name : "";
+            const dataType = colObj ? colObj.dataType : 0; // Name
+            const isNullable = colObj ? colObj.isNullable : false;
+            const nullPct = colObj ? colObj.nullPercentage : 10;
+            const dupPct = colObj ? colObj.duplicatePercentage : 0;
+            const minRange = colObj ? colObj.minRange : "";
+            const maxRange = colObj ? colObj.maxRange : "";
+            const dbId = colObj ? colObj.dbId : 0;
+            const parentTableId = colObj ? colObj.parentTableId : "";
+
+            // Build options list for DataType dropdown
+            let optionsHtml = "";
+            dataTypes.forEach(t => {
+                optionsHtml += `<option value="${t.Id}" ${t.Id === dataType ? 'selected' : ''}>${t.Name}</option>`;
+            });
+
+            const rowHtml = `
+                <tr class="column-row-tr" id="column-row-${cId}" data-id="${cId}" data-db-id="${dbId}">
+                    <td>
+                        <input type="text" class="form-control form-control-sm column-name" value="${colName}" placeholder="Örn: Email" required>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm column-datatype" onchange="onDataTypeChange(${cId}, this.value)">
+                            ${optionsHtml}
+                        </select>
+                    </td>
+                    <td>
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input column-nullable" type="checkbox" role="switch" ${isNullable ? 'checked' : ''} onchange="toggleNullPercentage(${cId}, this.checked)">
+                            <input type="number" class="form-control form-control-sm column-null-percentage mt-1 ${isNullable ? '' : 'd-none'}" value="${nullPct}" min="0" max="100" placeholder="% Null">
+                        </div>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm column-duplicate-percentage" value="${dupPct}" min="0" max="100" placeholder="% Tekrar">
+                    </td>
+                    <td class="extra-config-td">
+                        <!-- Ranges inputs -->
+                        <div class="row g-1 range-inputs ${dataType === dataTypes.find(t => t.Name === "ForeignKey")?.Id ? 'd-none' : ''}" id="ranges-${cId}">
+                            <div class="col">
+                                <input type="text" class="form-control form-control-sm column-min" value="${minRange || ''}" placeholder="Min">
+                            </div>
+                            <div class="col">
+                                <input type="text" class="form-control form-control-sm column-max" value="${maxRange || ''}" placeholder="Max">
+                            </div>
+                        </div>
+                        
+                        <!-- ForeignKey inputs -->
+                        <div class="row g-1 fk-inputs ${dataType === dataTypes.find(t => t.Name === "ForeignKey")?.Id ? '' : 'd-none'}" id="fk-inputs-${cId}">
+                            <div class="col">
+                                <select class="form-select form-select-sm column-parent-table" onchange="updateFkDropdowns()" placeholder="Tablo">
+                                    <option value="">Seçin</option>
+                                </select>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeColumn(${cId})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+
+            tbody.insertAdjacentHTML("beforeend", rowHtml);
+            
+            // Initialize the parent table selector if it is a ForeignKey
+            const fkTypeIndex = dataTypes.find(t => t.Name === "ForeignKey")?.Id;
+            if (dataType === fkTypeIndex) {
+                populateFkTableDropdown(cId);
+                
+                // Map the parentTableId from DB to the matching UI client table element
+                if (parentTableId) {
+                    // Find which UI table element corresponds to the DB table ID
+                    const parentTableEl = document.querySelector(`.table-card[data-db-id="${parentTableId}"]`);
+                    if (parentTableEl) {
+                        const tempId = parentTableEl.getAttribute("data-id");
+                        document.querySelector(`#column-row-${cId} .column-parent-table`).value = tempId;
+                    }
+                }
+            }
+        }
+
+        function removeTable(tId) {
+            if (confirm("Bu tabloyu ve içindeki tüm sütunları silmek istediğinizden emin misiniz?")) {
+                document.getElementById(`table-card-${tId}`).remove();
+                updateFkDropdowns();
+            }
+        }
+
+        function removeColumn(cId) {
+            document.getElementById(`column-row-${cId}`).remove();
+        }
+
+        function toggleNullPercentage(cId, checked) {
+            const input = document.querySelector(`#column-row-${cId} .column-null-percentage`);
+            if (checked) {
+                input.classList.remove("d-none");
+            } else {
+                input.classList.add("d-none");
+            }
+        }
+
+        function onDataTypeChange(cId, value) {
+            const rangesDiv = document.getElementById(`ranges-${cId}`);
+            const fkDiv = document.getElementById(`fk-inputs-${cId}`);
+            const fkTypeIndex = dataTypes.find(t => t.Name === "ForeignKey")?.Id;
+
+            if (parseInt(value) === fkTypeIndex) {
+                rangesDiv.classList.add("d-none");
+                fkDiv.classList.remove("d-none");
+                populateFkTableDropdown(cId);
+            } else {
+                rangesDiv.classList.remove("d-none");
+                fkDiv.classList.add("d-none");
+            }
+        }
+
+        function getTablesList() {
+            const tables = [];
+            document.querySelectorAll(".table-card").forEach(el => {
+                const id = el.getAttribute("data-id");
+                const name = el.querySelector(".table-name").value.trim();
+                if (name) {
+                    tables.push({ id: parseInt(id), name: name });
+                }
+            });
+            return tables;
+        }
+
+        function updateFkDropdowns() {
+            document.querySelectorAll(".column-row-tr").forEach(row => {
+                const cId = row.getAttribute("data-id");
+                const datatypeSelect = row.querySelector(".column-datatype");
+                const fkTypeIndex = dataTypes.find(t => t.Name === "ForeignKey")?.Id;
+
+                if (parseInt(datatypeSelect.value) === fkTypeIndex) {
+                    populateFkTableDropdown(parseInt(cId));
+                }
+            });
+        }
+
+        function populateFkTableDropdown(cId) {
+            const select = document.querySelector(`#column-row-${cId} .column-parent-table`);
+            const currentValue = select.value;
+            const currentTableId = select.closest(".table-card").getAttribute("data-id");
+            
+            const tables = getTablesList();
+            select.innerHTML = '<option value="">Tablo Seçin</option>';
+            
+            tables.forEach(t => {
+                if (t.id !== parseInt(currentTableId)) {
+                    select.insertAdjacentHTML("beforeend", `<option value="${t.id}">${t.name}</option>`);
+                }
+            });
+            
+            if (currentValue) {
+                select.value = currentValue;
+            }
+        }
+
+        function serializeTemplateData(name, description, category) {
+            const payload = {
+                id: templateData.Id,
+                name: name,
+                description: description,
+                category: category,
+                tables: []
+            };
+
+            let validationSuccess = true;
+
+            const tableElements = document.querySelectorAll(".table-card");
+            tableElements.forEach(tEl => {
+                const tId = tEl.getAttribute("data-id");
+                const dbId = parseInt(tEl.getAttribute("data-db-id")) || 0;
+                const tName = tEl.querySelector(".table-name").value.trim();
+                const tCount = parseInt(tEl.querySelector(".table-count").value);
+
+                if (!tName) {
+                    showNotification("Hata", "Boş tablo adı girilemez.", "error");
+                    validationSuccess = false;
+                    return;
+                }
+
+                const tableDto = {
+                    id: dbId,
+                    templateId: templateData.Id,
+                    name: tName,
+                    recordCount: tCount,
+                    columns: []
+                };
+
+                const columnRows = tEl.querySelectorAll(".column-row-tr");
+                columnRows.forEach(cEl => {
+                    const cId = cEl.getAttribute("data-id");
+                    const dbColId = parseInt(cEl.getAttribute("data-db-id")) || 0;
+                    const cName = cEl.querySelector(".column-name").value.trim();
+                    const cDataType = parseInt(cEl.querySelector(".column-datatype").value);
+                    const cNullable = cEl.querySelector(".column-nullable").checked;
+                    const cNullPct = cNullable ? parseInt(cEl.querySelector(".column-null-percentage").value) : 0;
+                    const cDupPct = parseInt(cEl.querySelector(".column-duplicate-percentage").value) || 0;
+                    const cMin = cEl.querySelector(".column-min") ? cEl.querySelector(".column-min").value.trim() : null;
+                    const cMax = cEl.querySelector(".column-max") ? cEl.querySelector(".column-max").value.trim() : null;
+                    
+                    const fkTypeIndex = dataTypes.find(t => t.Name === "ForeignKey")?.Id;
+
+                    let parentTableId = null;
+                    let parentColumnId = null;
+
+                    if (cDataType === fkTypeIndex) {
+                        const pTableIdVal = cEl.querySelector(".column-parent-table").value;
+                        if (!pTableIdVal) {
+                            showNotification("Eksik İlişki", `'${tName}.${cName}' sütunu için bir parent tablo seçilmelidir.`, "error");
+                            validationSuccess = false;
+                            return;
+                        }
+                        parentTableId = parseInt(pTableIdVal);
+                    }
+
+                    if (!cName) {
+                        showNotification("Hata", "Boş sütun adı girilemez.", "error");
+                        validationSuccess = false;
+                        return;
+                    }
+
+                    tableDto.columns.push({
+                        id: dbColId,
+                        tableId: dbId,
+                        name: cName,
+                        dataType: cDataType,
+                        isNullable: cNullable,
+                        nullPercentage: cNullPct,
+                        duplicatePercentage: cDupPct,
+                        minRange: cMin,
+                        maxRange: cMax,
+                        parentTableId: parentTableId,
+                        parentColumnId: parentColumnId
+                    });
+                });
+
+                payload.tables.push(tableDto);
+            });
+
+            if (!validationSuccess) return null;
+
+            // Remap parent IDs inside payload to indices/names so backend can match them
+            payload.tables.forEach(t => {
+                t.columns.forEach(c => {
+                    if (c.parentTableId) {
+                        const tempId = c.parentTableId;
+                        const parentTableEl = document.querySelector(`.table-card[data-id="${tempId}"]`);
+                        if (parentTableEl) {
+                            const parentName = parentTableEl.querySelector(".table-name").value.trim();
+                            c.customRule = JSON.stringify({ parentTableName: parentName });
+                        }
+                    }
+                });
+            });
+
+            return payload;
+        }
+    </script>
+}

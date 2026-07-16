@@ -1,0 +1,116 @@
+@model IEnumerable<SmartTestDataGenerator.Core.Entities.GenerationHistory>
+
+<div class="row g-4">
+    <!-- Filter Bar -->
+    <div class="col-12">
+        <div class="premium-card p-4">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label small font-weight-bold">Şablon Ara</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control border-start-0" name="searchTemplate" placeholder="Şablon adına göre ara..." value="@Context.Request.Query["searchTemplate"]">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small font-weight-bold">Dosya Formatı</label>
+                    <select class="form-select form-select-sm" name="searchFormat">
+                        <option value="">Tüm Formatlar</option>
+                        <option value="JSON" selected="@(Context.Request.Query["searchFormat"] == "JSON")">JSON</option>
+                        <option value="CSV" selected="@(Context.Request.Query["searchFormat"] == "CSV")">CSV</option>
+                        <option value="Excel" selected="@(Context.Request.Query["searchFormat"] == "Excel")">Excel</option>
+                        <option value="XML" selected="@(Context.Request.Query["searchFormat"] == "XML")">XML</option>
+                        <option value="SQL" selected="@(Context.Request.Query["searchFormat"] == "SQL")">SQL</option>
+                        <option value="PDF" selected="@(Context.Request.Query["searchFormat"] == "PDF")">PDF</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-premium-primary btn-sm flex-grow-1">
+                        <i class="bi bi-funnel"></i> Filtrele
+                    </button>
+                    <a href="/History" class="btn btn-premium-secondary btn-sm flex-grow-1">
+                        Temizle
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- History Table -->
+    <div class="col-12">
+        <div class="premium-card p-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-color">
+                    <thead class="table-light text-muted small" style="background-color: var(--bg-color);">
+                        <tr>
+                            <th>Şablon Adı</th>
+                            <th>Üretilen Satır</th>
+                            <th>Dosya Tipi</th>
+                            <th>Tohum (Seed)</th>
+                            <th>Üretim Hızı</th>
+                            <th>Tarih</th>
+                            <th style="width: 10%;">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-clock display-4 mb-2 d-block"></i>
+                                    Aradığınız kriterlere uygun veri üretim geçmişi bulunamadı.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var hist in Model)
+                            {
+                                <tr id="history-row-@hist.Id">
+                                    <td class="font-weight-bold text-color">@hist.TemplateName</td>
+                                    <td>@hist.TotalRecords.ToString("#,##0") satır</td>
+                                    <td><span class="badge bg-secondary-subtle text-secondary">@hist.ExportFormat</span></td>
+                                    <td><code>@hist.Seed</code></td>
+                                    <td class="text-success"><i class="bi bi-speedometer2"></i> @hist.GenerationSpeedMs ms</td>
+                                    <td>@hist.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")</td>
+                                    <td>
+                                        <div class="d-flex gap-1">
+                                            <a href="@hist.FilePath" class="btn btn-sm btn-outline-primary" download title="Dosyayı İndir">
+                                                <i class="bi bi-download"></i>
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteHistory(@hist.Id)" title="Kaydı ve Dosyayı Sil">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function deleteHistory(id) {
+            if (confirm("Bu üretim kaydını ve sunucudaki ilişkili dosyayı kalıcı olarak silmek istediğinize emin misiniz?")) {
+                fetch(`/History/Delete/${id}`, { method: 'POST' })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        document.getElementById(`history-row-${id}`).remove();
+                        showNotification("Başarılı", "Üretim kaydı ve dosyası silindi.", "success");
+                    } else {
+                        showNotification("Hata", res.message, "error");
+                    }
+                })
+                .catch(() => {
+                    showNotification("Hata", "Silme işlemi sırasında bağlantı hatası oluştu.", "error");
+                });
+            }
+        }
+    </script>
+}

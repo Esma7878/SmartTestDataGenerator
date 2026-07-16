@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="tr" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Smart Test Data Generator</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/SmartTestDataGenerator.Web.styles.css" asp-append-version="true" />
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Early Theme Toggle Script to prevent flash of light/dark -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        })();
+    </script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <a class="sidebar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                <i class="bi bi-cpu-fill text-primary"></i>
+                <span>Smart Data Gen</span>
+            </a>
+            
+            <ul class="nav-menu">
+                <li class="nav-menu-item" id="nav-dashboard">
+                    <a asp-controller="Home" asp-action="Index">
+                        <i class="bi bi-grid-1x2-fill"></i> Panel (Dashboard)
+                    </a>
+                </li>
+                <li class="nav-menu-item" id="nav-templates">
+                    <a asp-controller="Templates" asp-action="Index">
+                        <i class="bi bi-layout-text-sidebar-reverse"></i> Şablonlar
+                    </a>
+                </li>
+                <li class="nav-menu-item" id="nav-history">
+                    <a asp-controller="History" asp-action="Index">
+                        <i class="bi bi-clock-history"></i> Üretim Geçmişi
+                    </a>
+                </li>
+                <li class="nav-menu-item" id="nav-mockapi">
+                    <a asp-controller="ApiMock" asp-action="Documentation">
+                        <i class="bi bi-braces-asterisk"></i> REST Mock API
+                    </a>
+                </li>
+                <li class="nav-menu-item" id="nav-settings">
+                    <a asp-controller="Settings" asp-action="Index">
+                        <i class="bi bi-gear-fill"></i> Ayarlar
+                    </a>
+                </li>
+            </ul>
+
+            <div class="mt-auto pt-3 border-top border-secondary border-opacity-25">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="small text-muted"><i class="bi bi-keyboard"></i> Kısayollar</span>
+                    <button class="btn btn-sm btn-link p-0 text-muted" data-bs-toggle="modal" data-bs-target="#shortcutsModal">
+                        <i class="bi bi-question-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <div class="main-wrapper">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="d-flex align-items-center gap-3">
+                    <h5 class="m-0 font-weight-bold">@ViewData["PageHeader"]</h5>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <!-- Quick Theme Toggle -->
+                    <button class="btn btn-premium-secondary px-2 py-1" id="theme-toggle" title="Temayı Değiştir">
+                        <i class="bi bi-sun-fill" id="theme-icon-light"></i>
+                        <i class="bi bi-moon-fill d-none" id="theme-icon-dark"></i>
+                    </button>
+                    
+                    <a asp-controller="Templates" asp-action="Create" class="btn btn-premium-primary">
+                        <i class="bi bi-plus-lg"></i> Hızlı Şablon
+                    </a>
+                </div>
+            </header>
+
+            <!-- Page Body -->
+            <main class="content-body">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div class="modal fade" id="shortcutsModal" tabindex="-1" aria-labelledby="shortcutsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title font-weight-bold" id="shortcutsModalLabel">Klavye Kısayolları</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Panel (Dashboard) Sayfasına Git</span>
+                        <span class="shortcut-badge">G + D</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Şablonlar Sayfasına Git</span>
+                        <span class="shortcut-badge">G + T</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Geçmiş Sayfasına Git</span>
+                        <span class="shortcut-badge">G + H</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Karanlık/Aydınlık Tema Değiştir</span>
+                        <span class="shortcut-badge">T + L</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Yeni Şablon Oluştur</span>
+                        <span class="shortcut-badge">N + T</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container for Notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer" style="z-index: 2000;"></div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+
+    <!-- Script to handle Theme Toggle and Navigation States -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Theme toggle logic
+            const themeToggleBtn = document.getElementById("theme-toggle");
+            const lightIcon = document.getElementById("theme-icon-light");
+            const darkIcon = document.getElementById("theme-icon-dark");
+
+            function updateThemeUI(theme) {
+                if (theme === 'dark') {
+                    lightIcon.classList.remove('d-none');
+                    darkIcon.classList.add('d-none');
+                } else {
+                    lightIcon.classList.add('d-none');
+                    darkIcon.classList.remove('d-none');
+                }
+            }
+
+            // Sync toggle button icon
+            const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+            updateThemeUI(currentTheme);
+
+            themeToggleBtn.addEventListener("click", function () {
+                const activeTheme = document.documentElement.getAttribute('data-bs-theme');
+                const newTheme = activeTheme === 'dark' ? 'light' : 'dark';
+                
+                document.documentElement.setAttribute('data-bs-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                updateThemeUI(newTheme);
+                
+                // Show notification toast
+                showNotification("Tema güncellendi", `Tema modu ${newTheme === 'dark' ? 'karanlık' : 'aydınlık'} olarak ayarlandı.`, "info");
+            });
+
+            // Navigation active highlight logic
+            const currentPath = window.location.pathname.toLowerCase();
+            document.querySelectorAll(".nav-menu-item").forEach(item => item.classList.remove("active"));
+            
+            if (currentPath.includes("/templates")) {
+                document.getElementById("nav-templates")?.classList.add("active");
+            } else if (currentPath.includes("/history")) {
+                document.getElementById("nav-history")?.classList.add("active");
+            } else if (currentPath.includes("/apimock")) {
+                document.getElementById("nav-mockapi")?.classList.add("active");
+            } else if (currentPath.includes("/settings")) {
+                document.getElementById("nav-settings")?.classList.add("active");
+            } else {
+                document.getElementById("nav-dashboard")?.classList.add("active");
+            }
+            
+            // Dynamic Toast notifications helper
+            window.showNotification = function(title, message, type = "success") {
+                const toastContainer = document.getElementById("toastContainer");
+                const id = "toast_" + Date.now();
+                const iconClass = type === "success" ? "bi-check-circle-fill text-success" : 
+                                  type === "error" ? "bi-exclamation-triangle-fill text-danger" : 
+                                  "bi-info-circle-fill text-info";
+                
+                const toastHtml = `
+                    <div id="${id}" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body d-flex align-items-center gap-2">
+                                <i class="bi ${iconClass}"></i>
+                                <div>
+                                    <strong class="d-block">${title}</strong>
+                                    <span class="small">${message}</span>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close m-auto me-2" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                `;
+                
+                toastContainer.insertAdjacentHTML("beforeend", toastHtml);
+                const toastEl = document.getElementById(id);
+                toastEl.classList.add(type === "error" ? "bg-danger-subtle" : type === "info" ? "bg-info-subtle" : "bg-success-subtle");
+                
+                const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+                toast.show();
+                
+                toastEl.addEventListener('hidden.bs.toast', function () {
+                    toastEl.remove();
+                });
+            }
+
+            // Keyboard Shortcuts
+            let activeKeys = {};
+            document.addEventListener('keydown', function (e) {
+                activeKeys[e.key.toLowerCase()] = true;
+                
+                // Go to Dashboard: g + d
+                if (activeKeys['g'] && activeKeys['d']) {
+                    window.location.href = '@Url.Action("Index", "Home")';
+                }
+                // Go to Templates: g + t
+                if (activeKeys['g'] && activeKeys['t']) {
+                    window.location.href = '@Url.Action("Index", "Templates")';
+                }
+                // Go to History: g + h
+                if (activeKeys['g'] && activeKeys['h']) {
+                    window.location.href = '@Url.Action("Index", "History")';
+                }
+                // Go to Create Template: n + t
+                if (activeKeys['n'] && activeKeys['t']) {
+                    window.location.href = '@Url.Action("Create", "Templates")';
+                }
+                // Toggle theme: t + l
+                if (activeKeys['t'] && activeKeys['l']) {
+                    themeToggleBtn.click();
+                }
+            });
+
+            document.addEventListener('keyup', function (e) {
+                activeKeys[e.key.toLowerCase()] = false;
+            });
+        });
+    </script>
+</body>
+</html>

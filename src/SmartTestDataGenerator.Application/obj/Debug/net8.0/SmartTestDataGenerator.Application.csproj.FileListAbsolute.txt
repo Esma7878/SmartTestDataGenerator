@@ -1,0 +1,15 @@
+C:\Users\Asus\.gemini\antigravity-ide\scratch\SmartTestDataGenerator\src\SmartTestDataGenerator.Application\bin\Debug\net8.0\SmartTestDataGenerator.Application.deps.json
+C:\Users\Asus\.gemini\antigravity-ide\scratch\SmartTestDataGenerator\src\SmartTestDataGenerator.Application\bin\Debug\net8.0\SmartTestDataGenerator.Application.dll
+C:\Users\Asus\.gemini\antigravity-ide\scratch\SmartTestDataGenerator\src\SmartTestDataGenerator.Application\bin\Debug\net8.0\SmartTestDataGenerator.Application.pdb
+C:\Users\Asus\.gemini\antigravity-ide\scratch\SmartTestDataGenerator\src\SmartTestDataGenerator.Application\bin\Debug\net8.0\SmartTestDataGenerator.Core.dll
+C:\Users\Asus\.gemini\antigravity-ide\scratch\SmartTestDataGenerator\src\SmartTestDataGenerator.Application\bin\Debug\net8.0\SmartTestDataGenerator.Core.pdb
+C:\Users\Asus\.gemini\antigravity-ide\scratch\SmartTestDataGenerator\src\SmartTestDataGenerator.Application\obj\Debug\net8.0\SmartTestDataGenerator.Application.csproj.AssemblyReference.cache
+C:\Users\Asus\.gemini\antigravity-ide\scratch\SmartTestDataGenerator\src\SmartTestDataGenerator.Application\obj\Debug\net8.0\SmartTestDataGenerator.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Asus\.gemini\antigravity-ide\scratch\SmartTestDataGenerator\src\SmartTestDataGenerator.Application\obj\Debug\net8.0\SmartTestDataGenerator.Application.AssemblyInfoInputs.cache
+C:\Users\Asus\.gemini\antigravity-ide\scratch\SmartTestDataGenerator\src\SmartTestDataGenerator.Application\obj\Debug\net8.0\SmartTestDataGenerator.Application.AssemblyInfo.cs
+C:\Users\Asus\.gemini\antigravity-ide\scratch\SmartTestDataGenerator\src\SmartTestDataGenerator.Application\obj\Debug\net8.0\SmartTestDataGenerator.Application.csproj.CoreCompileInputs.cache
+C:\Users\Asus\.gemini\antigravity-ide\scratch\SmartTestDataGenerator\src\SmartTestDataGenerator.Application\obj\Debug\net8.0\SmartTes.262F2879.Up2Date
+C:\Users\Asus\.gemini\antigravity-ide\scratch\SmartTestDataGenerator\src\SmartTestDataGenerator.Application\obj\Debug\net8.0\SmartTestDataGenerator.Application.dll
+C:\Users\Asus\.gemini\antigravity-ide\scratch\SmartTestDataGenerator\src\SmartTestDataGenerator.Application\obj\Debug\net8.0\refint\SmartTestDataGenerator.Application.dll
+C:\Users\Asus\.gemini\antigravity-ide\scratch\SmartTestDataGenerator\src\SmartTestDataGenerator.Application\obj\Debug\net8.0\SmartTestDataGenerator.Application.pdb
+C:\Users\Asus\.gemini\antigravity-ide\scratch\SmartTestDataGenerator\src\SmartTestDataGenerator.Application\obj\Debug\net8.0\ref\SmartTestDataGenerator.Application.dll
