@@ -1,0 +1,28 @@
+## User-specific files
+.vs/
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Re]leases/
+x64/
+x86/
+build/
+bin/
+obj/
+
+## SQLite Database
+*.db
+*.db-shm
+*.db-wal
+
+## Web generated exports
+src/SmartTestDataGenerator.Web/wwwroot/exports/*
+!src/SmartTestDataGenerator.Web/wwwroot/exports/.gitkeep
